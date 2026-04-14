@@ -1,0 +1,32 @@
+{
+  "conversation_created": {
+    "type": "conversation-created",
+    "fields": {
+      "conversationId": "conversationId"
+    }
+  },
+  "message_created": {
+    "type": "message-created",
+    "fields": {
+      "messageId": "messageId"
+    }
+  },
+  "thinking": {
+    "type": "thinking-step",
+    "wrap": "step",
+    "fields": {
+      "agent": "agent",
+      "status": "status",
+      "thought": "thought"
+    }
+  },
+  "message": {
+    "type": "message",
+    "fields": {
+      "content": "content"
+    }
+  },
+  "done": {
+    "type": "finish"
+  }
+}

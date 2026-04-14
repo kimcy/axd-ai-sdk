@@ -1,9 +1,27 @@
-import { useMemo } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useChat } from '@axe-ai-sdk/react'
-import { createMockTransport } from './mock-transport'
+// import { createMockTransport } from './mock-transport'
+import { createGatewayTransport } from './gateway-transport'
+import { SchemaGenerator } from './SchemaGenerator'
+
+type Tab = 'chat' | 'schema'
 
 export function App() {
-  const transport = useMemo(() => createMockTransport(), [])
+  const [tab, setTab] = useState<Tab>('chat')
+  const conversationIdRef = useRef<string | null>(null)
+  const transport = useMemo(
+    () =>
+      createGatewayTransport({
+        url: 'https://ca-chatbot-backend.wittybay-7be49843.koreacentral.azurecontainerapps.io/api/v1/gateway/messages',
+        getConversationId: () => conversationIdRef.current,
+        getMessageId: () => null,
+        onConversationId: (id) => {
+          conversationIdRef.current = id
+        },
+      }),
+    []
+  )
+  // const transport = useMemo(() => createMockTransport(), [])
 
   const {
     messages,
@@ -27,14 +45,37 @@ export function App() {
       <header>
         <h1>axe-ai-sdk example</h1>
         <div className='status'>
-          status: <code>{status}</code>
-          {error && <span className='error'> · {error.message}</span>}
-          <button className='clear' onClick={clear} disabled={isStreaming}>
-            Clear
-          </button>
+          {tab === 'chat' && (
+            <>
+              status: <code>{status}</code>
+              {error && <span className='error'> · {error.message}</span>}
+              <button className='clear' onClick={clear} disabled={isStreaming}>
+                Clear
+              </button>
+            </>
+          )}
         </div>
       </header>
 
+      <nav className='tabs'>
+        <button
+          className={tab === 'chat' ? 'tab tab-active' : 'tab'}
+          onClick={() => setTab('chat')}
+        >
+          Chat
+        </button>
+        <button
+          className={tab === 'schema' ? 'tab tab-active' : 'tab'}
+          onClick={() => setTab('schema')}
+        >
+          Schema Generator
+        </button>
+      </nav>
+
+      {tab === 'schema' && <SchemaGenerator />}
+
+      {tab === 'chat' && (
+      <>
       <ul className='messages'>
         {messages.length === 0 && (
           <li className='hint'>
@@ -103,6 +144,8 @@ export function App() {
           </button>
         )}
       </form>
+      </>
+      )}
     </div>
   )
 }
