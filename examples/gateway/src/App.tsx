@@ -6,8 +6,12 @@ import { SchemaGenerator } from './SchemaGenerator'
 
 type Tab = 'chat' | 'schema'
 
+type SSELogEntry = { event: string; data: string; partCount: number; ts: number }
+
 export function App() {
   const [tab, setTab] = useState<Tab>('chat')
+  const [showDebug, setShowDebug] = useState(false)
+  const [sseLog, setSseLog] = useState<SSELogEntry[]>([])
   const conversationIdRef = useRef<string | null>(null)
   const transport = useMemo(
     () =>
@@ -17,6 +21,14 @@ export function App() {
         getMessageId: () => null,
         onConversationId: (id) => {
           conversationIdRef.current = id
+        },
+        onSSEEvent: (event, data, parts) => {
+          setSseLog((prev) =>
+            [
+              ...prev,
+              { event, data, partCount: parts.length, ts: Date.now() },
+            ].slice(-50)
+          )
         },
       }),
     []
@@ -121,6 +133,46 @@ export function App() {
           </li>
         ))}
       </ul>
+
+      <section className='debug'>
+        <div className='debug-head'>
+          <button
+            type='button'
+            className='debug-toggle'
+            onClick={() => setShowDebug((v) => !v)}
+          >
+            {showDebug ? '▼' : '▶'} SSE debug ({sseLog.length})
+          </button>
+          {showDebug && (
+            <button
+              type='button'
+              className='clear'
+              onClick={() => setSseLog([])}
+            >
+              Clear
+            </button>
+          )}
+        </div>
+        {showDebug &&
+          (sseLog.length === 0 ? (
+            <div className='debug-empty'>아직 이벤트 없음</div>
+          ) : (
+            <ul className='debug-list'>
+              {sseLog.map((e, i) => (
+                <li
+                  key={i}
+                  className={
+                    e.partCount === 0 ? 'debug-row unmapped' : 'debug-row'
+                  }
+                >
+                  <code className='debug-event'>{e.event}</code>
+                  <span className='debug-count'>→ {e.partCount}</span>
+                  <pre className='debug-data'>{e.data}</pre>
+                </li>
+              ))}
+            </ul>
+          ))}
+      </section>
 
       <form onSubmit={handleSubmit} className='composer'>
         <input

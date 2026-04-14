@@ -56,6 +56,7 @@ export type GatewayTransportOptions = {
   getConversationId?: () => string | null
   getMessageId?: () => string | null
   onConversationId?: (id: string) => void
+  onSSEEvent?: (event: string, data: string, parts: StreamPart[]) => void
 }
 
 export function createGatewayTransport(
@@ -100,7 +101,9 @@ export function createGatewayTransport(
       let finished = false
       try {
         for await (const ev of readSSEStream(res.body, request.signal)) {
-          for (const part of interpret(ev.event, ev.data)) {
+          const parts = interpret(ev.event, ev.data)
+          options.onSSEEvent?.(ev.event, ev.data, parts)
+          for (const part of parts) {
             if (part.type === 'metadata') {
               const cid = part.data?.conversationId
               if (typeof cid === 'string') options.onConversationId?.(cid)

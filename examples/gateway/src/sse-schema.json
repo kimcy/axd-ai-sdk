@@ -1,12 +1,13 @@
 {
   "conversation_created": {
-    "type": "conversation-created",
+    "type": "metadata",
+    "wrap": "data",
     "fields": {
       "conversationId": "conversationId"
     }
   },
   "message_created": {
-    "type": "message-created",
+    "type": "message-start",
     "fields": {
       "messageId": "messageId"
     }
@@ -21,9 +22,9 @@
     }
   },
   "message": {
-    "type": "message",
+    "type": "text-delta",
     "fields": {
-      "content": "content"
+      "delta": "content"
     }
   },
   "done": {

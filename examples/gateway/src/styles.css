@@ -14,14 +14,22 @@ body {
 .app {
   max-width: 720px;
   margin: 0 auto;
-  padding: 24px 16px 120px;
+  padding: 132px 16px 120px;
 }
 header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 11;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 16px;
+  padding: 16px max(16px, calc((100vw - 720px) / 2 + 16px));
+  background: rgba(11, 13, 16, 0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid #1f2937;
 }
 header h1 {
   font-size: 20px;
@@ -187,16 +195,14 @@ button.clear {
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 16px;
+  padding: 16px max(16px, calc((100vw - 720px) / 2 + 16px));
   background: #0b0d10;
   border-top: 1px solid #1f2937;
   display: flex;
   gap: 8px;
-  justify-content: center;
 }
 .composer input {
   flex: 1;
-  max-width: 560px;
   background: #111827;
   border: 1px solid #1f2937;
   color: #e5e7eb;
@@ -210,9 +216,16 @@ button.clear {
 }
 
 .tabs {
+  position: fixed;
+  top: 64px;
+  left: 0;
+  right: 0;
+  z-index: 10;
   display: flex;
   gap: 4px;
-  margin-bottom: 16px;
+  padding: 0 max(16px, calc((100vw - 720px) / 2 + 16px));
+  background: rgba(11, 13, 16, 0.92);
+  backdrop-filter: blur(8px);
   border-bottom: 1px solid #1f2937;
 }
 .tab {
@@ -270,4 +283,82 @@ button.clear {
 .gen-textarea:focus {
   outline: none;
   border-color: #2563eb;
+}
+
+.debug {
+  margin-top: 24px;
+  padding: 12px;
+  background: #0f172a;
+  border: 1px solid #1f2937;
+  border-radius: 8px;
+  font-size: 12px;
+}
+.debug-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.debug-toggle {
+  background: transparent;
+  color: #9ca3af;
+  border: none;
+  padding: 2px 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  font-weight: 600;
+}
+.debug-toggle:hover {
+  color: #e5e7eb;
+}
+.debug-list {
+  margin-top: 8px;
+}
+.debug-empty {
+  color: #6b7280;
+  padding: 8px 0;
+}
+.debug-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.debug-row {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: 8px;
+  align-items: start;
+  padding: 6px 8px;
+  background: #111827;
+  border-radius: 4px;
+  border-left: 2px solid #34d399;
+}
+.debug-row.unmapped {
+  border-left-color: #f87171;
+}
+.debug-event {
+  color: #93c5fd;
+  background: transparent;
+  padding: 0;
+  font-weight: 600;
+}
+.debug-count {
+  color: #6b7280;
+}
+.debug-data {
+  margin: 0;
+  color: #d1d5db;
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 }
