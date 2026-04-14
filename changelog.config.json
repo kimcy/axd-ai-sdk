@@ -1,0 +1,17 @@
+{
+  "types": {
+    "feat": { "title": "🚀 Features", "semver": "minor" },
+    "fix": { "title": "🩹 Fixes", "semver": "patch" },
+    "perf": { "title": "⚡ Performance", "semver": "patch" },
+    "refactor": { "title": "💅 Refactors", "semver": "patch" },
+    "docs": { "title": "📖 Documentation", "semver": "patch" },
+    "build": { "title": "📦 Build", "semver": "patch" },
+    "types": { "title": "🌊 Types", "semver": "patch" },
+    "chore": { "title": "🏡 Chore" },
+    "examples": { "title": "🏀 Examples" },
+    "test": { "title": "✅ Tests" },
+    "style": { "title": "🎨 Styles" },
+    "ci": { "title": "🤖 CI" }
+  },
+  "repo": "kimcy/axe-ai-sdk"
+}

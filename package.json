@@ -1,7 +1,7 @@
 {
   "name": "axe-ai-sdk-monorepo",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.1",
   "packageManager": "pnpm@9.0.0",
   "scripts": {
     "build": "pnpm -r build",
@@ -15,10 +15,17 @@
     "docs:clean": "pnpm --filter @axe-ai-sdk/docs clean",
     "example:dev": "pnpm --filter @axe-ai-sdk/example-gateway dev",
     "example:build": "pnpm --filter @axe-ai-sdk/example-gateway build",
-    "example:preview": "pnpm --filter @axe-ai-sdk/example-gateway preview"
+    "example:preview": "pnpm --filter @axe-ai-sdk/example-gateway preview",
+    "prepare": "husky",
+    "changelog": "changelogen --no-commit --no-tag",
+    "release": "changelogen --release --push"
   },
   "devDependencies": {
+    "@commitlint/cli": "^19.6.0",
+    "@commitlint/config-conventional": "^19.6.0",
     "@types/node": "^22.10.0",
+    "changelogen": "^0.5.7",
+    "husky": "^9.1.7",
     "tsup": "^8.3.5",
     "typescript": "^5.9.0"
   }

@@ -153,6 +153,33 @@ See [`examples/gateway/`](examples/gateway) for a full runnable example that
 includes a mock SSE transport, request metadata, thinking-step rendering, and
 error/retry flows.
 
+## Commit & Release
+
+커밋 메시지는 [Conventional Commits](https://www.conventionalcommits.org/) 형식을 따릅니다.
+`commitlint` 가 husky `commit-msg` 훅에서 검증합니다.
+
+```
+<type>(<scope>): <subject>
+
+feat(core): add reconnect logic
+fix(react): avoid double submit on Enter
+docs: add useChat examples
+chore: bump deps
+```
+
+허용 타입: `feat`, `fix`, `perf`, `refactor`, `docs`, `style`, `test`,
+`build`, `ci`, `chore`, `revert`.
+
+### 릴리스
+
+커밋이 쌓인 뒤 `changelogen` 이 Conventional Commits 를 읽어 `CHANGELOG.md`
+를 자동 생성하고 버전을 bump 합니다.
+
+```bash
+pnpm changelog     # dry-run. CHANGELOG.md 미리보기만 갱신
+pnpm release       # 버전 bump + CHANGELOG + git tag + git push
+```
+
 ## License
 
 [MIT](LICENSE)
