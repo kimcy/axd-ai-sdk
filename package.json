@@ -16,6 +16,7 @@
     "example:dev": "pnpm --filter @axe-ai-sdk/example-gateway dev",
     "example:build": "pnpm --filter @axe-ai-sdk/example-gateway build",
     "example:preview": "pnpm --filter @axe-ai-sdk/example-gateway preview",
+    "infer-schema": "node packages/core/bin/infer-schema.mjs",
     "prepare": "husky",
     "changelog": "changelogen --no-commit --no-tag",
     "release": "changelogen --release --push"

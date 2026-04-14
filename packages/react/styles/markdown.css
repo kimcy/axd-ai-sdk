@@ -1,0 +1,174 @@
+/*
+ * @axe-ai-sdk/react — Markdown styles
+ * Import once in your app:  import '@axe-ai-sdk/react/styles.css'
+ * Includes structural styles + a github-dark-dimmed highlight.js theme.
+ */
+
+.axe-md {
+  font-size: 14px;
+  line-height: 1.7;
+  color: inherit;
+  word-wrap: break-word;
+}
+.axe-md > *:first-child { margin-top: 0; }
+.axe-md > *:last-child { margin-bottom: 0; }
+
+.axe-md p,
+.axe-md ul,
+.axe-md ol,
+.axe-md blockquote,
+.axe-md table,
+.axe-md .axe-md__codeblock,
+.axe-md hr {
+  margin: 0 0 12px;
+}
+
+.axe-md h1, .axe-md h2, .axe-md h3, .axe-md h4, .axe-md h5, .axe-md h6 {
+  margin: 20px 0 10px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+.axe-md h1 { font-size: 1.5em; }
+.axe-md h2 { font-size: 1.3em; }
+.axe-md h3 { font-size: 1.15em; }
+.axe-md h4 { font-size: 1em; }
+
+.axe-md a {
+  color: #60a5fa;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.35);
+  transition: border-color 0.15s;
+}
+.axe-md a:hover {
+  border-bottom-color: #60a5fa;
+}
+
+.axe-md strong { font-weight: 600; color: #f3f4f6; }
+.axe-md em { font-style: italic; }
+.axe-md del { opacity: 0.6; }
+
+.axe-md ul, .axe-md ol {
+  padding-left: 1.4em;
+}
+.axe-md li { margin: 4px 0; }
+.axe-md li > p { margin: 0; }
+
+.axe-md blockquote {
+  padding: 6px 14px;
+  border-left: 3px solid #3b82f6;
+  background: rgba(59, 130, 246, 0.08);
+  color: #cbd5e1;
+  border-radius: 0 6px 6px 0;
+}
+.axe-md blockquote p { margin: 4px 0; }
+
+.axe-md hr {
+  border: 0;
+  border-top: 1px solid #1f2937;
+  margin: 20px 0;
+}
+
+.axe-md table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.axe-md th, .axe-md td {
+  padding: 8px 12px;
+  border: 1px solid #1f2937;
+}
+.axe-md th {
+  background: #111827;
+  font-weight: 600;
+  text-align: left;
+}
+.axe-md tr:nth-child(2n) td {
+  background: rgba(17, 24, 39, 0.5);
+}
+
+/* Inline code */
+.axe-md :not(pre) > code {
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  padding: 2px 6px;
+  background: rgba(148, 163, 184, 0.15);
+  border-radius: 4px;
+  color: #f0abfc;
+}
+
+/* Fenced code block */
+.axe-md__codeblock {
+  position: relative;
+  background: #0d1117;
+  border: 1px solid #1f2937;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.axe-md__codehead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: #161b22;
+  border-bottom: 1px solid #1f2937;
+  font-size: 11px;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.axe-md__codelang { font-weight: 600; }
+.axe-md__copy {
+  background: transparent;
+  color: #8b949e;
+  border: 1px solid #30363d;
+  padding: 2px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.15s;
+}
+.axe-md__copy:hover {
+  color: #e5e7eb;
+  border-color: #58a6ff;
+}
+.axe-md__codeblock pre {
+  margin: 0;
+  padding: 14px 16px;
+  overflow-x: auto;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+.axe-md__codeblock pre code {
+  background: transparent;
+  padding: 0;
+  color: #c9d1d9;
+  font-size: inherit;
+}
+
+/* ---- highlight.js theme: github-dark-dimmed ---- */
+.hljs { color: #c9d1d9; background: transparent; }
+.hljs-doctag, .hljs-keyword, .hljs-meta .hljs-keyword,
+.hljs-template-tag, .hljs-template-variable, .hljs-type,
+.hljs-variable.language_ { color: #ff7b72; }
+.hljs-title, .hljs-title.class_, .hljs-title.class_.inherited__,
+.hljs-title.function_ { color: #d2a8ff; }
+.hljs-attr, .hljs-attribute, .hljs-literal, .hljs-meta,
+.hljs-number, .hljs-operator, .hljs-variable,
+.hljs-selector-attr, .hljs-selector-class, .hljs-selector-id { color: #79c0ff; }
+.hljs-regexp, .hljs-string, .hljs-meta .hljs-string { color: #a5d6ff; }
+.hljs-built_in, .hljs-symbol { color: #ffa657; }
+.hljs-comment, .hljs-code, .hljs-formula { color: #8b949e; }
+.hljs-name, .hljs-quote, .hljs-selector-tag, .hljs-selector-pseudo { color: #7ee787; }
+.hljs-subst { color: #c9d1d9; }
+.hljs-section { color: #1f6feb; font-weight: bold; }
+.hljs-bullet { color: #f2cc60; }
+.hljs-emphasis { color: #c9d1d9; font-style: italic; }
+.hljs-strong { color: #c9d1d9; font-weight: bold; }
+.hljs-addition { color: #aff5b4; background-color: #033a16; }
+.hljs-deletion { color: #ffdcd7; background-color: #67060c; }

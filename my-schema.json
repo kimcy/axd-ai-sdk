@@ -1,0 +1,39 @@
+{
+  "message_start": {
+    "type": "message-start",
+    "fields": {
+      "messageId": "message_id"
+    }
+  },
+  "thinking": {
+    "type": "thinking-step",
+    "wrap": "step",
+    "fields": {
+      "agent": "agent",
+      "status": "status",
+      "thought": "thought"
+    }
+  },
+  "citation": {
+    "type": "citation",
+    "wrap": "citation",
+    "fields": {
+      "id": "id",
+      "title": "title",
+      "url": "url",
+      "snippet": "snippet"
+    }
+  },
+  "token": {
+    "type": "text-delta",
+    "fields": {
+      "delta": "text"
+    }
+  },
+  "done": {
+    "type": "finish",
+    "fields": {
+      "reason": "finish_reason"
+    }
+  }
+}

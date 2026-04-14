@@ -32,14 +32,19 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    }
+    },
+    "./styles.css": "./styles/markdown.css",
+    "./styles/markdown.css": "./styles/markdown.css"
   },
   "files": [
     "dist",
+    "styles",
     "README.md",
     "LICENSE"
   ],
-  "sideEffects": false,
+  "sideEffects": [
+    "**/*.css"
+  ],
   "publishConfig": {
     "access": "public"
   },
@@ -50,7 +55,11 @@
     "clean": "rimraf dist"
   },
   "dependencies": {
-    "@axe-ai-sdk/core": "workspace:*"
+    "@axe-ai-sdk/core": "workspace:*",
+    "highlight.js": "^11.11.1",
+    "react-markdown": "^10.1.0",
+    "rehype-highlight": "^7.0.2",
+    "remark-gfm": "^4.0.1"
   },
   "peerDependencies": {
     "react": ">=18.0.0"

@@ -37,8 +37,12 @@
       "require": "./dist/index.cjs"
     }
   },
+  "bin": {
+    "axe-infer-schema": "./bin/infer-schema.mjs"
+  },
   "files": [
     "dist",
+    "bin",
     "README.md",
     "LICENSE"
   ],
