@@ -50,7 +50,7 @@ export function App() {
     clear,
   } = useChat({
     transport,
-    idleTimeoutMs: 15_000,
+    idleTimeoutMs: 65_000,
     persistence: { key: 'axe-ai-sdk-example' },
   })
 

@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls d:/axd-ai-sdk/examples/gateway/src/*.d.ts)",
+      "Bash(ls -la d:/axd-ai-sdk/.env* d:/axd-ai-sdk/examples/gateway/.env*)",
+      "Bash(sed 's/^GATEWAY_TOKEN=/VITE_GATEWAY_TOKEN=/' src/.env.local)",
+      "Bash(sed 's/^GATEWAY_TOKEN=/VITE_GATEWAY_TOKEN=/' src/.env.example)",
+      "Bash(rm src/.env.local src/.env.example)",
+      "Bash(ls -la .env* src/.env*)",
+      "Bash(npm view:*)",
+      "Bash(pnpm -r --filter './packages/*' publish --access public --dry-run)",
+      "Bash(pnpm -r --filter './packages/*' publish --access public)",
+      "Bash(pnpm -r --filter './packages/*' publish --access public --no-git-checks)"
+    ]
+  }
+}
