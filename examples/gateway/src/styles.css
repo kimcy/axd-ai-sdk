@@ -76,19 +76,48 @@ button.clear {
   flex-direction: column;
   gap: 12px;
 }
-.hint {
-  color: #6b7280;
-  font-size: 13px;
-  padding: 16px;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+.welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 48px 16px 32px;
 }
-.hint code {
+.welcome-greeting {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: #111827;
+}
+.welcome-sub {
+  margin: 8px 0 24px;
+  font-size: 14px;
+  color: #6b7280;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.chip {
   background: #f1f5f9;
-  padding: 1px 5px;
-  border-radius: 3px;
-  color: #b45309;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.chip:hover:not(:disabled) {
+  background: #e0e7ff;
+  border-color: #a5b4fc;
+  color: #1e40af;
+}
+.chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .msg {
   background: #f9fafb;

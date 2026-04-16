@@ -94,10 +94,28 @@ export function App() {
 
       <ul className='messages'>
         {messages.length === 0 && (
-          <li className='hint'>
-            메시지를 입력해 게이트웨이와 채팅을 시작하세요. 대화 ID는
-            새로고침 후에도 유지됩니다. 새 세션을 시작하려면{' '}
-            <code>Reset</code>을 누르세요.
+          <li className='welcome'>
+            <p className='welcome-greeting'>안녕하세요! 무엇을 도와드릴까요?</p>
+            <p className='welcome-sub'>
+              아래 질문을 선택하거나 직접 입력해 보세요.
+            </p>
+            <div className='chips'>
+              {[
+                'axe-ai-sdk 시작하는 방법 알려줘',
+                'useChat 훅 사용법이 궁금해',
+                '스트리밍 응답은 어떻게 처리해?',
+                '게이트웨이 연동 예제 보여줘',
+              ].map((text) => (
+                <button
+                  key={text}
+                  className='chip'
+                  onClick={() => submit(text)}
+                  disabled={isStreaming}
+                >
+                  {text}
+                </button>
+              ))}
+            </div>
           </li>
         )}
         {messages.map((m) => (
