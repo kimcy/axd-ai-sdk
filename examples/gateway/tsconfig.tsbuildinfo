@@ -1,1 +1,1 @@
-{"root":["./src/app.tsx","./src/gateway-transport.ts","./src/main.tsx","./src/mock-transport.ts","./src/vite-env.d.ts"],"version":"5.9.3"}
+{"root":["./src/app.tsx","./src/main.tsx","./src/mock-transport.ts","./src/vite-env.d.ts"],"version":"5.9.3"}

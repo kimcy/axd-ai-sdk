@@ -236,13 +236,32 @@ chore: bump deps
 
 ### 릴리스
 
-커밋이 쌓인 뒤 `changelogen` 이 Conventional Commits 를 읽어 `CHANGELOG.md`
-를 자동 생성하고 버전을 bump 합니다.
+`pnpm release` 는 [`scripts/release.mjs`](scripts/release.mjs) 를 실행합니다 — 세 곳의 `package.json` (루트 + `packages/core` + `packages/react`) 을 동시에 bump 하고, 빌드 → 드라이런 검증 → npm publish → git commit/tag/push 까지 순서대로 처리합니다.
 
 ```bash
-pnpm changelog     # dry-run. CHANGELOG.md 미리보기만 갱신
-pnpm release       # 버전 bump + CHANGELOG + git tag + git push
+pnpm release patch           # 0.0.5 → 0.0.6
+pnpm release minor           # 0.0.5 → 0.1.0
+pnpm release major           # 0.0.5 → 1.0.0
+pnpm release 1.2.3           # 정확한 버전 지정
+pnpm release patch --dry     # publish·push 없이 검증만 (또는 pnpm release:dry)
+pnpm release patch --yes     # 확인 프롬프트 skip
 ```
+
+스크립트가 체크하는 것:
+
+- `main` 브랜치가 아니면 중단
+- 같은 태그가 이미 존재하면 중단
+- 실제 publish 전에 **드라이런 + "yes" 확인** (단, `--yes` 생략시에만)
+- 커밋에 `CHANGELOG.md` 변경사항이 있으면 자동 포함
+
+CHANGELOG 는 `changelogen` 으로 미리 갱신해둘 수 있습니다:
+
+```bash
+pnpm changelog               # CHANGELOG.md 만 갱신 (commit·tag 안 만듦)
+pnpm release patch           # 위 변경사항이 release 커밋에 함께 포함됨
+```
+
+> `pnpm release`(무인자)는 changelogen 을 그대로 호출하던 이전 버전과 달리, 이제는 이 스크립트의 alias 입니다. changelogen 의 `--release --push` 는 워크스페이스 패키지의 버전을 건드리지 않아 **루트 / core / react 가 어긋나는 문제**가 있어 폐기됐습니다.
 
 ## License
 
