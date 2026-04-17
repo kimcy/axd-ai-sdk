@@ -231,9 +231,6 @@
   border-block-end: 1px solid var(--axe-md-border);
   text-align: start;
 }
-.axe-md tr:last-child :where(th, td) {
-  border-block-end: 0;
-}
 .axe-md th {
   background: var(--axe-md-table-head-bg);
   font-weight: 600;
