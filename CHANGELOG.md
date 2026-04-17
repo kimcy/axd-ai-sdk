@@ -4,6 +4,10 @@ All notable changes to `@axe-ai-sdk/*` packages are documented here.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.0.7
+
+[compare changes](https://github.com/kimcy/axe-ai-sdk/compare/v0.0.6...v0.0.7)
+
 ## v0.0.6
 
 [compare changes](https://github.com/kimcy/axe-ai-sdk/compare/v0.0.5...v0.0.6)
