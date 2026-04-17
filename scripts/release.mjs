@@ -134,7 +134,7 @@ try {
 sh(`git add ${toAdd.join(' ')}`)
 sh(`git commit -m "chore(release): v${next}"`)
 sh(`git tag v${next}`)
-sh('git push origin main --tags')
+sh(`git push origin main v${next}`)
 
 console.log(`\n✓ Released v${next}`)
 console.log(`  https://www.npmjs.com/package/@axe-ai-sdk/core/v/${next}`)
