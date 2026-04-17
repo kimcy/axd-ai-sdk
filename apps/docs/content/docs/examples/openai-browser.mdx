@@ -1,0 +1,150 @@
+---
+title: OpenAI (브라우저 직접)
+description: 커스텀 ChatTransport 로 브라우저가 OpenAI API 를 직접 호출하는 패턴.
+---
+
+import { Callout } from 'nextra/components'
+
+# OpenAI × 브라우저 직접
+
+백엔드 없이 **브라우저가 `api.openai.com` 에 직접 요청**하는 패턴. 로컬 데모, BYOK 플레이그라운드, 또는 인증 뒤의 내부 툴처럼 키가 노출돼도 허용되는 환경에서만 사용하세요.
+
+```
+Browser ──(openai SDK)──> api.openai.com
+```
+
+전체 코드는 [`examples/openai-browser/`](https://github.com/kimcy/axe-ai-sdk/tree/main/examples/openai-browser).
+
+<Callout type='warning'>
+  `VITE_` 접두사 환경변수는 번들에 그대로 포함됩니다. DevTools · Network 탭 ·
+  소스맵에서 API 키가 보이므로 **프로덕션에서는 쓰지 마세요**. 진지한 앱이라면
+  [서버 프록시 패턴](/docs/examples/openai-proxy) 을 쓰세요.
+</Callout>
+
+## 왜 `DefaultChatTransport` 대신 커스텀 구현?
+
+`DefaultChatTransport` 는 **SSE 와이어 포맷(axe-wire/1)** 을 파싱합니다. 하지만 여기선 중간에 서버가 없어서 번역할 와이어 자체가 없습니다. OpenAI SDK 의 async iterator 를 그대로 `StreamPart` 로 변환하는 게 가장 직관적입니다.
+
+`ChatTransport` 인터페이스는 메서드 하나뿐입니다:
+
+```ts
+interface ChatTransport {
+  send(request: ChatRequest): AsyncIterable<StreamPart>
+}
+```
+
+## 커스텀 Transport
+
+```ts filename="src/transport.ts"
+import type {
+  ChatRequest,
+  ChatTransport,
+  StreamPart,
+} from '@axe-ai-sdk/react'
+import OpenAI from 'openai'
+
+export class OpenAIBrowserTransport implements ChatTransport {
+  private client: OpenAI
+  private model: string
+  private conversationId: string | null = null
+
+  constructor(opts: { apiKey: string; model?: string }) {
+    this.client = new OpenAI({
+      apiKey: opts.apiKey,
+      dangerouslyAllowBrowser: true,
+    })
+    this.model = opts.model ?? 'gpt-4o-mini'
+  }
+
+  reset() {
+    this.conversationId = null
+  }
+
+  async *send(request: ChatRequest): AsyncIterable<StreamPart> {
+    if (!this.conversationId) {
+      this.conversationId = crypto.randomUUID()
+      yield { type: 'metadata', data: { conversationId: this.conversationId } }
+    }
+    yield { type: 'message-start', messageId: crypto.randomUUID() }
+
+    try {
+      const stream = await this.client.chat.completions.create(
+        {
+          model: this.model,
+          stream: true,
+          messages: request.messages.map((m) => ({
+            role: m.role as 'system' | 'user' | 'assistant',
+            content: m.content,
+          })),
+        },
+        { signal: request.signal }
+      )
+
+      for await (const chunk of stream) {
+        const delta = chunk.choices[0]?.delta?.content
+        if (delta) yield { type: 'text-delta', delta }
+      }
+      yield { type: 'finish', reason: 'stop' }
+    } catch (err) {
+      if ((err as Error).name === 'AbortError') {
+        yield { type: 'finish', reason: 'abort' }
+        return
+      }
+      yield {
+        type: 'error',
+        error: (err as Error).message,
+        code: 'OPENAI_ERROR',
+      }
+      yield { type: 'finish', reason: 'error' }
+    }
+  }
+}
+```
+
+포인트:
+
+- **`dangerouslyAllowBrowser: true`** 를 명시해야 OpenAI SDK 가 브라우저에서 동작합니다.
+- **`request.signal`** 을 그대로 OpenAI 요청 옵션에 전달 → `useChat` 의 `stop()` 이 실제 OpenAI 스트림을 끊습니다.
+- **`conversationId`** 는 서버가 없으니 클라이언트가 생성. `metadata` StreamPart 로 yield 하면 `useChat` 이 추적합니다.
+
+## UI
+
+UI 코드는 [서버 프록시 예제](/docs/examples/openai-proxy) 와 **완전히 동일**합니다 — transport 만 바꿔 끼웁니다.
+
+```tsx filename="src/App.tsx"
+import { useChat, Markdown } from '@axe-ai-sdk/react'
+import { OpenAIBrowserTransport } from './transport'
+
+const transport = new OpenAIBrowserTransport({
+  apiKey: import.meta.env.VITE_OPENAI_API_KEY!,
+})
+
+export function App() {
+  const { messages, submit, stop, isStreaming } = useChat({ transport })
+  // ...
+}
+```
+
+## BYOK — 사용자가 키를 직접 입력
+
+환경변수 대신 UI 에서 키를 받아도 됩니다. 완성된 "키 게이트" 구현은 실제 예제 [`src/App.tsx`](https://github.com/kimcy/axe-ai-sdk/blob/main/examples/openai-browser/src/App.tsx) 를 보세요. 핵심은 키가 준비된 뒤에 transport 를 `useMemo` 로 생성하는 것입니다.
+
+```tsx
+const transport = useMemo(
+  () => apiKey ? new OpenAIBrowserTransport({ apiKey }) : null,
+  [apiKey]
+)
+if (!transport) return <KeyGate onSubmit={setApiKey} />
+return <Chat transport={transport} />
+```
+
+## 실행
+
+```bash
+pnpm example:openai-browser:dev
+```
+
+- 브라우저: http://localhost:5577
+- 키는 UI 게이트에서 입력하거나, `.env.local` 에 `VITE_OPENAI_API_KEY` 를 세팅하면 스킵
+
+Network 탭을 열어보면 **`api.openai.com` 호출이 직접 보입니다** — 서버 프록시 예제에서는 안 보이던 것입니다.

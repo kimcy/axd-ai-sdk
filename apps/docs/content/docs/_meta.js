@@ -12,4 +12,7 @@ export default {
   advanced: {
     title: '고급',
   },
+  examples: {
+    title: '예제',
+  },
 }

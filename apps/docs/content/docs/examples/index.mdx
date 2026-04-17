@@ -1,0 +1,33 @@
+---
+title: 예제
+description: axe-ai-sdk 를 다양한 백엔드와 연결하는 최소 예제 모음.
+---
+
+# 예제
+
+실전에서 자주 만나는 두 패턴을 각각 완성형 예제로 제공합니다.
+
+| 예제 | 경로 | 키 위치 | 언제 쓰나 |
+| --- | --- | --- | --- |
+| [OpenAI (서버 프록시)](/docs/examples/openai-proxy) | `examples/openai/` | 서버 `.env` | 프로덕션 — API 키를 숨기고 CORS 를 피하고 툴 실행을 서버에 둘 때 |
+| [OpenAI (브라우저 직접)](/docs/examples/openai-browser) | `examples/openai-browser/` | 브라우저 | 로컬 데모, BYOK(Bring Your Own Key) 플레이그라운드, 인증 뒤의 내부 툴 |
+| Gateway | `examples/gateway/` | — | 기존 게이트웨이 백엔드에 붙일 때 참고용 (Mock Transport 포함) |
+
+## 두 OpenAI 패턴의 구조 차이
+
+```
+[서버 프록시]
+Browser ──/api/chat──> Vite proxy ──> Hono ──(openai SDK)──> api.openai.com
+                                       │
+                                       └─ axe-wire/1 SSE 로 번역
+
+[브라우저 직접]
+Browser ──(openai SDK)──> api.openai.com
+   │
+   └─ OpenAIBrowserTransport 가 ChatTransport.send() 를 직접 구현
+```
+
+- **서버 프록시**는 `DefaultChatTransport` 를 그대로 쓰되, 서버가 OpenAI 스트림을 `axe-wire/1` 포맷으로 번역합니다.
+- **브라우저 직접**은 와이어 포맷 자체가 없어서 커스텀 `ChatTransport` 를 구현합니다. OpenAI SDK 의 async iterator 를 바로 `StreamPart` 로 yield.
+
+어느 쪽이든 UI 코드(`useChat`, `<Markdown>`)는 **완전히 동일**합니다 — transport 만 바꿔 끼우면 됩니다.
