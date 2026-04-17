@@ -4,10 +4,15 @@ export * from './sse-debug-panel'
 export * from './markdown'
 export {
   DefaultChatTransport,
+  createTextStreamTransport,
   lastUserContent,
   getCookie,
   bearer,
   bearerFromCookie,
+} from '@axe-ai-sdk/core'
+export type {
+  TextStreamGenerator,
+  CreateTextStreamTransportOptions,
 } from '@axe-ai-sdk/core'
 export type {
   ChatTransport,

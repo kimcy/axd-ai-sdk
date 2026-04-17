@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
-import { useChat, Markdown } from '@axe-ai-sdk/react'
-import { OpenAIBrowserTransport } from './transport'
+import { useChat, Markdown, type ChatTransport } from '@axe-ai-sdk/react'
+import { createOpenAITransport } from './transport'
 
 const STARTERS = [
   'OpenAI Chat Completions 스트리밍 원리 설명해줘',
@@ -18,7 +18,7 @@ export function App() {
 
   const transport = useMemo(() => {
     if (!apiKey) return null
-    return new OpenAIBrowserTransport({
+    return createOpenAITransport({
       apiKey,
       model: import.meta.env.VITE_OPENAI_MODEL ?? 'gpt-4o-mini',
     })
@@ -72,7 +72,7 @@ function Chat({
   error,
   setError,
 }: {
-  transport: OpenAIBrowserTransport
+  transport: ChatTransport & { reset: () => void }
   input: string
   setInput: (v: string) => void
   error: Error | null
