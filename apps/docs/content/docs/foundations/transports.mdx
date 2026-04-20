@@ -13,6 +13,58 @@ export interface ChatTransport {
 }
 ```
 
+## 양방향 어댑터
+
+전송 계층은 **양쪽 방향으로 포맷을 변환하는 어댑터**입니다.
+
+```
+[컨트롤러]                  [ChatTransport]                 [벤더 API]
+
+ChatRequest ─────────────▶  ① 벤더 포맷으로 변환           POST /v1/messages
+(통일된 입력)                                               (Anthropic / OpenAI / ...)
+
+StreamPart  ◀─────────────  ② StreamPart 로 정규화          SSE event stream
+(통일된 출력)                                               (벤더 스펙)
+```
+
+**보낼 때 (`ChatRequest` → 벤더 포맷)**
+
+SDK 내부에서는 모든 요청이 `ChatRequest`(= `messages[]` + `signal` + `metadata`)로
+통일돼 있고, 전송 구현체가 각 벤더 스펙으로 **자유롭게 매핑**해서 보냅니다.
+
+```ts
+// Anthropic
+body: JSON.stringify({
+  model: 'claude-sonnet-4-6',
+  stream: true,
+  max_tokens: 4096,
+  messages: request.messages.map((m) => ({ role: m.role, content: m.content })),
+})
+
+// OpenAI
+body: JSON.stringify({
+  model: 'gpt-4o-mini',
+  stream: true,
+  messages: request.messages.map((m) => ({ role: m.role, content: m.content })),
+})
+```
+
+같은 `request.messages` 지만 벤더가 요구하는 필드 이름·구조로 바꿔 보냅니다.
+
+**받을 때 (벤더 이벤트 → `StreamPart`)**
+
+벤더가 어떤 포맷을 주든 전송 구현체가 **동일한 `StreamPart` 유니온**
+(`text-delta` / `tool-call` / `thinking-step` / `citation` / `finish` ...) 으로
+정규화해서 yield 합니다. 그래서 위쪽 (컨트롤러, `useChat` 같은 훅)은 어떤 벤더인지
+몰라도 됩니다.
+
+**핵심 의미**
+
+- 전송을 교체해도 **위쪽 코드는 바뀌지 않습니다** (훅 입장에선 `StreamPart`만 봄).
+- 벤더에 **보내는 포맷은 자유**지만, **돌려주는 포맷은 `StreamPart` 로 고정** —
+  이게 이 아키텍처의 핵심 계약입니다.
+- 아래 구현 계약 세 가지는 이 출력 측 계약을 지키기 위한 최소 규약입니다.
+
 ## `ChatRequest`
 
 ```ts
@@ -29,16 +81,18 @@ type ChatRequest = {
 - `metadata` — `submit(content, { metadata })` 또는 `reload({ metadata })` 에서
   넘긴 임의의 요청 메타데이터.
 
-## 계약 (contract)
+## 구현 contract
 
-전송 구현체는 다음을 반드시 지켜야 합니다.
+전송 계층을 구현할 때는 아래 세 가지를 꼭 맞춰 주세요.
 
-1. **`finish` 파트로 끝내기** — 정상 종료 시 마지막 파트는 `{ type: 'finish' }`
-   여야 합니다. 그렇지 않으면 메시지가 `streaming` 상태에 고착됩니다.
-2. **`signal` 존중** — abort 가 발생하면 가능한 한 빨리 루프를 빠져나가고,
-   네트워크 요청도 취소해야 합니다.
-3. **에러는 throw** — 복구 불가능한 에러는 `throw` 하세요. 컨트롤러가
-   메시지를 `error` 상태로 전이시킵니다.
+1. **정상 종료는 `finish`로 닫기** — 스트림을 끝낼 때는 반드시 마지막으로
+   `{ type: 'finish' }`를 보내야 합니다. 빠뜨리면 해당 메시지가 계속
+   `streaming`으로 보일 수 있습니다.
+2. **`signal`(취소)에 반응하기** — `request.signal`이 abort되면 `send` 안의
+   비동기 루프는 가능한 한 곧바로 빠져 나오고, `fetch`처럼 취소 가능한 요청은
+   `signal`을 넘겨 함께 끊어 주세요.
+3. **오류는 `throw`** — 그러면 컨트롤러가 그 메시지를 `error`
+   상태로 바꿉니다.
 
 ## 예시: OpenAI Chat Completions
 
@@ -104,3 +158,190 @@ export function createMockTransport(): ChatTransport {
   }
 }
 ```
+
+## 고급 예시: Anthropic Messages API (tool + thinking + citation)
+
+`createTextStreamTransport`는 "텍스트 델타만 yield" 하는 좁은 케이스용 헬퍼라
+tool-call / thinking-step / citation 처럼 풍부한 `StreamPart`를 방출하려면
+`ChatTransport`를 직접 구현해야 합니다.
+
+아래는 Anthropic Messages API의 SSE 이벤트를 `StreamPart` 로 매핑하는 예시입니다.
+
+### 이벤트 매핑
+
+| Anthropic 이벤트                             | `StreamPart`                     |
+| -------------------------------------------- | -------------------------------- |
+| `message_start`                              | `metadata` + `message-start`     |
+| `content_block_delta / text_delta`           | `text-delta`                     |
+| `content_block_delta / thinking_delta`       | `thinking-step`                  |
+| `content_block_start(tool_use)`              | `tool-call` (status: `running`)  |
+| `input_json_delta` (조각 누적)               | — (내부 버퍼링만)                |
+| `content_block_stop` (tool_use)              | `tool-call` (status: `complete`) |
+| `content_block_delta / citations_delta`      | `citation`                       |
+| `message_delta.stop_reason === 'max_tokens'` | `finish({ reason: 'length' })`   |
+| `error`                                      | `error` + `finish('error')`      |
+| `AbortError` throw                           | `finish({ reason: 'abort' })`    |
+
+### 구현
+
+```ts filename="anthropic-transport.ts"
+import type {
+  ChatTransport,
+  ChatRequest,
+  StreamPart,
+  ToolCall,
+} from '@axe-ai-sdk/core'
+import { parseSSE, createId } from '@axe-ai-sdk/core'
+
+export function createAnthropicTransport(opts: {
+  apiKey: string
+  model?: string
+}): ChatTransport {
+  return {
+    async *send(request: ChatRequest): AsyncIterable<StreamPart> {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': opts.apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: opts.model ?? 'claude-sonnet-4-6',
+          stream: true,
+          max_tokens: 4096,
+          messages: request.messages
+            .filter((m) => m.role !== 'system')
+            .map((m) => ({ role: m.role, content: m.content })),
+        }),
+        signal: request.signal,
+      })
+
+      if (!res.ok || !res.body) {
+        throw new Error(`Anthropic ${res.status}: ${await res.text()}`)
+      }
+
+      // tool_use 는 조각난 JSON 으로 도착하므로 block index 별로 버퍼링
+      const toolBuffers = new Map<
+        number,
+        { id: string; name: string; jsonBuf: string }
+      >()
+      let finishReason: 'stop' | 'length' | 'error' | 'abort' = 'stop'
+
+      try {
+        for await (const event of parseSSE(res.body)) {
+          if (!event.data || event.data === '[DONE]') continue
+          const e = JSON.parse(event.data) as any
+
+          switch (e.type) {
+            case 'message_start':
+              yield {
+                type: 'metadata',
+                data: { conversationId: e.message.id, model: e.message.model },
+              }
+              yield { type: 'message-start', messageId: e.message.id }
+              break
+
+            case 'content_block_start':
+              if (e.content_block.type === 'tool_use') {
+                toolBuffers.set(e.index, {
+                  id: e.content_block.id,
+                  name: e.content_block.name,
+                  jsonBuf: '',
+                })
+                yield {
+                  type: 'tool-call',
+                  toolCall: {
+                    id: e.content_block.id,
+                    name: e.content_block.name,
+                    status: 'running',
+                  },
+                }
+              }
+              break
+
+            case 'content_block_delta': {
+              const d = e.delta
+              if (d.type === 'text_delta') {
+                yield { type: 'text-delta', delta: d.text }
+              } else if (d.type === 'thinking_delta') {
+                yield {
+                  type: 'thinking-step',
+                  step: {
+                    id: `think-${e.index}`,
+                    agent: 'claude',
+                    status: 'running',
+                    thought: d.thinking,
+                  },
+                }
+              } else if (d.type === 'input_json_delta') {
+                const buf = toolBuffers.get(e.index)
+                if (buf) buf.jsonBuf += d.partial_json
+              } else if (d.type === 'citations_delta') {
+                yield {
+                  type: 'citation',
+                  citation: {
+                    id: createId('cite'),
+                    title: d.citation.title,
+                    url: d.citation.url,
+                    snippet: d.citation.cited_text,
+                  },
+                }
+              }
+              break
+            }
+
+            case 'content_block_stop': {
+              const buf = toolBuffers.get(e.index)
+              if (buf) {
+                const args = buf.jsonBuf ? JSON.parse(buf.jsonBuf) : undefined
+                yield {
+                  type: 'tool-call',
+                  toolCall: {
+                    id: buf.id,
+                    name: buf.name,
+                    args,
+                    status: 'complete',
+                  },
+                }
+                toolBuffers.delete(e.index)
+              }
+              break
+            }
+
+            case 'message_delta':
+              if (e.delta?.stop_reason === 'max_tokens') finishReason = 'length'
+              break
+
+            case 'error':
+              yield { type: 'error', error: e.error?.message ?? 'stream error' }
+              finishReason = 'error'
+              break
+          }
+        }
+
+        yield { type: 'finish', reason: finishReason }
+      } catch (err) {
+        if ((err as Error).name === 'AbortError') {
+          yield { type: 'finish', reason: 'abort' }
+          return
+        }
+        throw err
+      }
+    },
+  }
+}
+```
+
+### 직접 구현이 필요한 패턴
+
+`createTextStreamTransport` 헬퍼가 커버할 수 없는 지점들입니다.
+
+1. **조각 누적 (버퍼링)** — `input_json_delta` 처럼 여러 조각으로 도착해 완성되면
+   단일 파트로 방출해야 하는 경우, 루프 바깥에 상태(`toolBuffers`)가 필요합니다.
+2. **이벤트 → 파트 1:N 매핑** — 하나의 벤더 이벤트(`message_start`)가 `metadata` +
+   `message-start` 두 파트로 펼쳐지는 패턴.
+3. **`stop_reason` 분기** — 벤더가 주는 종료 사유를
+   `'stop' | 'length' | 'error' | 'abort'` 로 매핑하려면 루프 바깥 변수가 필요합니다.
+4. **혼합 파트 방출** — 하나의 응답에서 `text-delta`, `thinking-step`, `tool-call`,
+   `citation` 이 인터리빙되어 나오는 경우.
