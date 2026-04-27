@@ -18,7 +18,7 @@ Open the printed localhost URL.
 ## What it shows
 
 - `useChat` with `localStorage` persistence
-- Agent reasoning steps (`thinking-step` parts, `running` → `complete`)
+- Agent reasoning steps (`thinking` parts, `running` → `complete`)
 - RAG-style citations
 - Error path — send a message containing `fail`
 - Slow stream cadence — send a message containing `slow`

@@ -12,7 +12,7 @@ pnpm add @axe-ai-sdk/core
 
 - `SSEParser` / `readSSEStream` — robust incremental SSE parser
 - `ChatTransport` — adapter interface (OpenAI / Anthropic / MCP / custom)
-- `StreamPart` — discriminated union with `text-delta`, `thinking-step`,
+- `StreamPart` — discriminated union with `text-delta`, `thinking`,
   `tool-call`, `tool-result`, `citation`, `metadata`, `error`, `finish`
 - `ChatController` — request-scoped state machine with abort/idle-timeout
 - `ChatError`, `AbortedError`, `TimeoutError`, `isAbortError()`

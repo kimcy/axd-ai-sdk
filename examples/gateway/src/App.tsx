@@ -29,8 +29,8 @@ export function App() {
   // headers: bearerFromCookie(GATEWAY_TOKEN_COOKIE),
 
   // 게이트웨이는 `{ content, conversationId? }` 형태의 body 를 기대합니다.
-  // (기본 `interpret: interpretAuto` 가 conversation_created / message_created /
-  //  thinking / message 이벤트를 canonical StreamPart 로 자동 변환합니다.)
+  // (기본 `interpret: interpretAxeWire1` 가 message_created / thinking /
+  //  message / done 이벤트를 canonical StreamPart 로 자동 변환합니다.)
   // prepareBody: (request, { conversationId }) => ({
   //   content: lastUserContent(request),
   //   ...(conversationId ? { conversationId } : {}),

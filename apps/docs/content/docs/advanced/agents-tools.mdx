@@ -7,13 +7,13 @@ title: 에이전트 & 툴 호출
 axe-ai-sdk 는 에이전트 루프의 중간 상태를 UI 에 실시간으로 노출할 수 있도록
 `StreamPart` 에 전용 이벤트를 두고 있습니다.
 
-## thinking-step
+## thinking
 
 에이전트가 "지금 무엇을 하고 있는지" 를 보여줍니다.
 
 ```ts
 yield {
-  type: 'thinking-step',
+  type: 'thinking',
   step: {
     agent: 'planner',
     status: 'running',
@@ -24,7 +24,7 @@ yield {
 // ...잠시 후
 
 yield {
-  type: 'thinking-step',
+  type: 'thinking',
   step: {
     agent: 'planner',
     status: 'complete',

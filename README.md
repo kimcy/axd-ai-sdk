@@ -35,7 +35,7 @@ pnpm docs:clean    # .next 정리
 
 Vite 기반 예제는 [`examples/gateway`](examples/gateway) 에 있습니다. 순수
 클라이언트 mock transport 로 동작하므로 서버 준비 없이 바로 실행할 수 있고,
-`thinking-step` / `citation` / `text-delta` / `error` 등 canonical
+`thinking` / `citation` / `text-delta` / `error` 등 canonical
 `StreamPart` 전 종류를 시연합니다.
 
 ```bash
@@ -50,26 +50,33 @@ pnpm example:preview                     # 빌드 결과 미리보기
 
 ## SSE 포맷
 
-`DefaultChatTransport` 가 이해하는 유일한 와이어 포맷입니다. 규약은 두 줄.
+`DefaultChatTransport` 가 이해하는 유일한 와이어 포맷입니다. 4 개의 이벤트
+이름과 그에 대응하는 JSON `data:` 페이로드만 외우면 됩니다.
 
-1. **`event:` 이름 = `StreamPart.type`** (`text-delta`, `thinking-step`,
-   `tool-call`, `tool-result`, `citation`, `message-start`, `metadata`,
-   `error`, `finish`).
-2. **`data:` 는 JSON 객체**. 해당 `StreamPart` 의 나머지 필드를 그대로 담습니다.
+| `event:`          | `data:` 페이로드                                                         |
+| ----------------- | ------------------------------------------------------------------------ |
+| `message_created` | `{ "messageId": "..." }`                                                 |
+| `thinking`        | `{ "agent": "...", "status": "running"\|"complete", "thought"?: "..." }` |
+| `message`         | `{ "content": "..." }`                                                   |
+| `done`            | `{ "conversationId": "...", "conversationStatus": "..." }`               |
 
 ```
-event: text-delta
-data: {"delta":"안녕"}
+event: message_created
+data: {"messageId":"msg_01abc"}
 
-event: thinking-step
-data: {"step":{"agent":"planner","status":"running","thought":"Parsing intent"}}
+event: thinking
+data: {"agent":"planner","status":"running","thought":"Parsing intent"}
 
-event: finish
-data: {"reason":"stop"}
+event: message
+data: {"content":"안녕"}
+
+event: done
+data: {"conversationId":"conv_123","conversationStatus":"ACTIVE"}
 ```
 
 이게 전부입니다. 서버가 이 모양으로만 내려주면 클라이언트 측 매핑 코드는
-한 줄도 필요 없습니다.
+한 줄도 필요 없습니다. SSE 코멘트 (`:heartbeat` 등) 는 파서가 자동으로
+무시합니다.
 
 ## Features
 
@@ -88,7 +95,7 @@ data: {"reason":"stop"}
 - **Request isolation** — 요청별 AbortController. 사용자가 빠르게 여러 번
   발사해도 스트림이 뒤섞이지 않습니다.
 - **Idle timeout** — 총 요청 시간이 아닌 청크 간 간격 기반 (장시간 생성에 적합).
-- **Agent / tool / RAG ready** — `StreamPart` 유니언이 `thinking-step`,
+- **Agent / tool / RAG ready** — `StreamPart` 유니언이 `thinking`,
   `tool-call`, `tool-result`, `citation`, 임의 `metadata` 를 직접 전달합니다.
 - **Typed status machine** — each message tracks `pending` → `streaming`
   → `done` / `error` / `aborted`.

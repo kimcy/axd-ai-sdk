@@ -136,6 +136,17 @@ sh(`git commit -m "chore(release): v${next}"`)
 sh(`git tag v${next}`)
 sh(`git push origin main v${next}`)
 
+// 7) GitHub Release — separate resource from the git tag.
+console.log('\n=== GitHub Release ===')
+try {
+  sh(`gh release create v${next} --generate-notes --title "v${next}"`)
+} catch {
+  console.warn(
+    `  ! Failed to create GitHub Release for v${next}. ` +
+      `Create it manually or run: gh release create v${next} --generate-notes --title "v${next}"`
+  )
+}
+
 console.log(`\n✓ Released v${next}`)
 console.log(`  https://www.npmjs.com/package/@axe-ai-sdk/core/v/${next}`)
 console.log(`  https://www.npmjs.com/package/@axe-ai-sdk/react/v/${next}`)

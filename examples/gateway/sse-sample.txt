@@ -1,5 +1,5 @@
-event: message_start
-data: {"message_id":"msg_01abc","conversation_id":"conv_123"}
+event: message_created
+data: {"messageId":"msg_01abc"}
 
 event: thinking
 data: {"agent":"planner","status":"running","thought":"사용자 의도 분석 중"}
@@ -10,23 +10,20 @@ data: {"agent":"planner","status":"complete","thought":"종신보험 추천 플�
 event: thinking
 data: {"agent":"retriever","status":"running","thought":"상품 DB 검색"}
 
-event: citation
-data: {"id":"prod-1","title":"무배당 종신보험 플러스","url":"https://example.com/products/1","snippet":"40대 남성 표준체 기준 월 12만원"}
-
 event: thinking
 data: {"agent":"retriever","status":"complete","thought":"3건 검색 완료"}
 
-event: token
-data: {"text":"안녕"}
+event: message
+data: {"content":"안녕"}
 
-event: token
-data: {"text":"하세요"}
+event: message
+data: {"content":"하세요"}
 
-event: token
-data: {"text":", 종신보험 "}
+event: message
+data: {"content":", 종신보험 "}
 
-event: token
-data: {"text":"추천드립니다."}
+event: message
+data: {"content":"추천드립니다."}
 
 event: done
-data: {"finish_reason":"stop","message_id":"msg_01abc","conversation_id":"conv_123"}
+data: {"conversationId":"conv_123","conversationStatus":"ACTIVE"}

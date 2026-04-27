@@ -88,7 +88,7 @@ createTextStreamTransport(generate, {
 
 다음 상황은 `createTextStreamTransport` 로 표현할 수 없고, `ChatTransport.send` 를 직접 구현해야 합니다.
 
-- **툴 호출** — `tool-call` / `tool-result` / `thinking-step` 을 중간에 끼워넣고 싶을 때
+- **툴 호출** — `tool-call` / `tool-result` / `thinking` 을 중간에 끼워넣고 싶을 때
 - **인용/RAG** — `citation` StreamPart 를 발행해야 할 때
 - **커스텀 메시지 id** — 서버가 내려준 messageId 를 그대로 써야 할 때
 

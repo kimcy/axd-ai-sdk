@@ -165,7 +165,7 @@ export class ChatController {
           content: msg.content + part.delta,
         }
         break
-      case 'thinking-step':
+      case 'thinking':
         next = {
           ...msg,
           status: 'streaming',

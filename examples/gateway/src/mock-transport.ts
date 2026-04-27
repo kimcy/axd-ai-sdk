@@ -7,11 +7,14 @@ import {
 /**
  * A purely client-side transport that simulates a streaming LLM response.
  *
+ * Mirrors the canonical `axe-wire/1` event order:
+ *   message_created → thinking* → message* → done
+ *
  * Demonstrates:
- * - `message-start` (server-assigned message id)
- * - `thinking-step` (agent reasoning steps, running → complete)
- * - `text-delta` chunked character-by-character
- * - `metadata` (conversation id)
+ * - `message-start` (from `message_created`)
+ * - `thinking` (agent reasoning steps, running → complete)
+ * - `text-delta` chunked character-by-character (from `message`)
+ * - `metadata` (conversation id, arrives at end via `done`)
  * - `error` for the error-demo keyword
  * - respecting `request.signal` for aborts
  *
@@ -25,10 +28,6 @@ export function createMockTransport(): ChatTransport {
       const triggerSlow = userContent.toLowerCase().includes('slow')
 
       yield {
-        type: 'metadata',
-        data: { conversationId: 'mock-convo-1' },
-      }
-      yield {
         type: 'message-start',
         messageId: `mock-${Date.now()}`,
       }
@@ -36,12 +35,12 @@ export function createMockTransport(): ChatTransport {
       await sleep(120, request.signal)
 
       yield {
-        type: 'thinking-step',
+        type: 'thinking',
         step: { agent: 'planner', status: 'running', thought: 'Parsing intent' },
       }
       await sleep(300, request.signal)
       yield {
-        type: 'thinking-step',
+        type: 'thinking',
         step: {
           agent: 'planner',
           status: 'complete',
@@ -50,7 +49,7 @@ export function createMockTransport(): ChatTransport {
       }
 
       yield {
-        type: 'thinking-step',
+        type: 'thinking',
         step: { agent: 'retriever', status: 'running', thought: 'Searching docs' },
       }
       await sleep(400, request.signal)
@@ -64,7 +63,7 @@ export function createMockTransport(): ChatTransport {
         },
       }
       yield {
-        type: 'thinking-step',
+        type: 'thinking',
         step: {
           agent: 'retriever',
           status: 'complete',
@@ -88,6 +87,7 @@ export function createMockTransport(): ChatTransport {
         yield { type: 'text-delta', delta: ch }
       }
 
+      yield { type: 'metadata', data: { conversationId: 'mock-convo-1' } }
       yield { type: 'finish', reason: 'stop' }
     },
   }

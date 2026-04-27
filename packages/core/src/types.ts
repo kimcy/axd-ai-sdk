@@ -50,7 +50,7 @@ export type Message = {
 export type StreamPart =
   | { type: 'message-start'; messageId?: string; role?: MessageRole }
   | { type: 'text-delta'; delta: string }
-  | { type: 'thinking-step'; step: ThinkingStep }
+  | { type: 'thinking'; step: ThinkingStep }
   | { type: 'tool-call'; toolCall: ToolCall }
   | { type: 'tool-result'; id: string; result: unknown }
   | { type: 'citation'; citation: Citation }

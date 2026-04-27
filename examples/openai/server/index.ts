@@ -45,8 +45,7 @@ app.post('/api/chat', async (c) => {
       stream.writeSSE({ event, data: JSON.stringify(data) })
 
     try {
-      await write('metadata', { data: { conversationId } })
-      await write('message-start', { messageId })
+      await write('message_created', { messageId })
 
       const completion = await openai.chat.completions.create(
         {
@@ -57,22 +56,17 @@ app.post('/api/chat', async (c) => {
         { signal: controller.signal }
       )
 
-      let reason: 'stop' | 'abort' | 'error' = 'stop'
+      let status: 'ACTIVE' | 'ABORTED' | 'ERROR' = 'ACTIVE'
       try {
         for await (const chunk of completion) {
           const delta = chunk.choices[0]?.delta?.content
-          if (delta) await write('text-delta', { delta })
-          const finish = chunk.choices[0]?.finish_reason
-          if (finish && finish !== 'stop') {
-            // pass through non-stop reasons (length / content_filter / tool_calls)
-            reason = 'stop'
-          }
+          if (delta) await write('message', { content: delta })
         }
       } catch (err) {
         if ((err as Error).name === 'AbortError') {
-          reason = 'abort'
+          status = 'ABORTED'
         } else {
-          reason = 'error'
+          status = 'ERROR'
           await write('error', {
             error: (err as Error).message ?? 'OpenAI stream error',
             code: 'OPENAI_STREAM_ERROR',
@@ -80,13 +74,13 @@ app.post('/api/chat', async (c) => {
         }
       }
 
-      await write('finish', { reason })
+      await write('done', { conversationId, conversationStatus: status })
     } catch (err) {
       await write('error', {
         error: (err as Error).message ?? 'Unknown server error',
         code: 'SERVER_ERROR',
       })
-      await write('finish', { reason: 'error' })
+      await write('done', { conversationId, conversationStatus: 'ERROR' })
     }
   })
 })

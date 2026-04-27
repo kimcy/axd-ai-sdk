@@ -39,45 +39,45 @@ const transport = new DefaultChatTransport({
 
 ## SSE 포맷
 
-규약은 단 두 줄입니다.
+각 이벤트는 고정된 `event:` 이름과 JSON `data:` 페이로드를 가집니다.
 
-1. **`event:` 이름이 `StreamPart.type` 과 동일** — `text-delta`,
-   `thinking-step`, `tool-call`, `tool-result`, `citation`, `message-start`,
-   `metadata`, `error`, `finish` 중 하나.
-2. **`data:` 는 JSON 객체**. `StreamPart` 의 나머지 필드를 그대로 담습니다.
+| `event:`          | `data:` 페이로드                                            | StreamPart                       |
+| ----------------- | ----------------------------------------------------------- | -------------------------------- |
+| `message_created` | `{ "messageId": "..." }`                                    | `message-start`                  |
+| `thinking`        | `{ "agent": "...", "status": "running"\|"complete", "thought"?: "..." }` | `thinking`          |
+| `message`         | `{ "content": "..." }`                                      | `text-delta`                     |
+| `done`            | `{ "conversationId": "...", "conversationStatus": "..." }`  | `metadata` + `finish`            |
 
 ```
-event: message-start
-data: {"messageId":"msg_01abc","role":"assistant"}
+event: message_created
+data: {"messageId":"msg_01abc"}
 
-event: metadata
-data: {"data":{"conversationId":"conv_123"}}
+event: thinking
+data: {"agent":"planner","status":"running","thought":"Parsing intent"}
 
-event: thinking-step
-data: {"step":{"agent":"planner","status":"running","thought":"Parsing intent"}}
+event: thinking
+data: {"agent":"planner","status":"complete","thought":"Plan ready"}
 
-event: thinking-step
-data: {"step":{"agent":"planner","status":"complete"}}
+event: message
+data: {"content":"안"}
 
-event: citation
-data: {"citation":{"id":"doc-1","title":"Getting started","url":"https://example.com/..."}}
+event: message
+data: {"content":"녕"}
 
-event: text-delta
-data: {"delta":"안"}
-
-event: text-delta
-data: {"delta":"녕"}
-
-event: finish
-data: {"reason":"stop"}
+event: done
+data: {"conversationId":"conv_123","conversationStatus":"ACTIVE"}
 ```
 
-이 모양이면 `DefaultChatTransport` 는 `{ type: event, ...JSON.parse(data) }`
-로 읽어 그대로 yield 합니다. 추가 설정은 없습니다.
+`done` 의 `conversationId` 는 `metadata` StreamPart 로 변환되어 자동
+추적되며, 다음 요청 body 에 포함됩니다.
 
 <Callout type="info">
-  편의상 `data: [DONE]` 는 `{ type: 'finish', reason: 'stop' }` 의 별칭으로
-  처리됩니다. 하지만 canonical 포맷에서는 `event: finish` 를 권장합니다.
+  - `event: thinking` 에서 `status: "thinking"` 은 진행 중 thought 업데이트로
+    무시됩니다. 이미 열려 있는 running 스텝과 스트리밍되는 `message` 델타가
+    같은 텍스트를 표현하기 때문입니다.
+  - SSE 코멘트 라인 (`:heartbeat` 등) 은 파서가 자동으로 무시합니다.
+  - 편의상 `data: [DONE]` 는 `{ type: 'finish', reason: 'stop' }` 의 별칭으로
+    처리됩니다. 하지만 canonical 포맷에서는 `event: done` 을 권장합니다.
 </Callout>
 
 ### 알려지지 않은 이벤트
