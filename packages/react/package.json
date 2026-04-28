@@ -1,6 +1,6 @@
 {
   "name": "@axe-ai-sdk/react",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "description": "React hooks for axe-ai-sdk — useChat with streaming, optimistic UI, persistence, abort/reload.",
   "license": "MIT",
   "author": "axe-ai-sdk contributors",

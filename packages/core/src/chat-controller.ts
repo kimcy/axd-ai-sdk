@@ -1,11 +1,7 @@
 import { ChatError, TimeoutError, isAbortError } from './errors'
 import { createId } from './id'
 import { type ChatTransport } from './transport'
-import {
-  type Message,
-  type StreamPart,
-  type ThinkingStep,
-} from './types'
+import { type Message, type StreamPart } from './types'
 
 export type ChatControllerOptions = {
   transport: ChatTransport
@@ -169,7 +165,7 @@ export class ChatController {
         next = {
           ...msg,
           status: 'streaming',
-          thinkingSteps: mergeThinkingStep(msg.thinkingSteps, part.step),
+          thinkingSteps: [...(msg.thinkingSteps ?? []), part.step],
         }
         break
       case 'tool-call': {
@@ -303,22 +299,5 @@ export class ChatController {
 
     return assistantMessageId
   }
-}
-
-function mergeThinkingStep(
-  existing: ThinkingStep[] | undefined,
-  step: ThinkingStep
-): ThinkingStep[] {
-  const list = existing ?? []
-  if (step.status === 'complete') {
-    for (let i = list.length - 1; i >= 0; i--) {
-      if (list[i]!.agent === step.agent && list[i]!.status === 'running') {
-        const next = list.slice()
-        next[i] = { ...list[i]!, ...step }
-        return next
-      }
-    }
-  }
-  return [...list, step]
 }
 
