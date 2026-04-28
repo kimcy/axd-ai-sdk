@@ -10,7 +10,17 @@ export type MessageStatus =
 export type ThinkingStep = {
   id?: string
   agent: string
-  status: 'running' | 'complete'
+  /**
+   * `running`  — step started.
+   * `complete` — step finished.
+   * `thinking` — in-flight echo of the agent's full thought so far. The
+   *              chat-controller treats this as a signal to demote any
+   *              `text-delta`s streamed during the open running step out of
+   *              `message.content` and into the running step's `thought`
+   *              (per axe-wire/1: those deltas were reasoning, not answer).
+   *              `thinking` echoes are NOT appended to `thinkingSteps`.
+   */
+  status: 'running' | 'complete' | 'thinking'
   thought?: string
   startedAt?: number
   completedAt?: number

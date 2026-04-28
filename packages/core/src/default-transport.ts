@@ -11,10 +11,10 @@ import { type ChatRequest, type StreamPart } from './types'
  *   data: {"messageId":"..."}
  *
  *   event: thinking
- *   data: {"agent":"...","status":"running"|"complete","thought":"..."}
- *   // status:"thinking" with an in-flight `thought` is also accepted and
- *   // dropped — the open running step + streaming `message` deltas already
- *   // carry the same information.
+ *   data: {"agent":"...","status":"running"|"complete"|"thinking","thought":"..."}
+ *   // status:"thinking" is treated as an in-flight echo: chat-controller uses
+ *   // it as a signal to demote any text-deltas streamed during the open
+ *   // running step out of message.content and into that step's thought.
  *
  *   event: message
  *   data: {"content":"..."}
@@ -249,7 +249,13 @@ export function interpretAxeWire1(
 
   if (event === 'thinking') {
     if (!parsed.agent || !parsed.status) return []
-    if (parsed.status !== 'running' && parsed.status !== 'complete') return []
+    if (
+      parsed.status !== 'running' &&
+      parsed.status !== 'complete' &&
+      parsed.status !== 'thinking'
+    ) {
+      return []
+    }
     return [
       {
         type: 'thinking',

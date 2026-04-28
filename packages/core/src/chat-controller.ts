@@ -35,6 +35,14 @@ export class ChatController {
   private active: ActiveRequest | null = null
   private status: ControllerStatus = 'idle'
   private lastError: Error | null = null
+  /**
+   * Per-message: index in `message.content` where the currently-open running
+   * thinking step's text-deltas began. Used to demote those deltas out of
+   * `content` and into the step's `thought` if a `status:'thinking'` echo
+   * arrives (signalling the deltas were reasoning, not the final answer).
+   * Cleared when the step closes or the stream finishes.
+   */
+  private pendingDeltaStart = new Map<string, number>()
 
   constructor(private opts: ChatControllerOptions) {
     this.messages = opts.initialMessages ?? []
@@ -111,6 +119,7 @@ export class ChatController {
       citations: undefined,
       updatedAt: now,
     }
+    this.pendingDeltaStart.delete(last.id)
     this.setMessages([...this.messages.slice(0, -1), replacement])
     return this.runRequest(replacement.id, options?.metadata)
   }
@@ -154,20 +163,72 @@ export class ChatController {
             : msg.metadata,
         }
         break
-      case 'text-delta':
+      case 'text-delta': {
+        // Append to message content live. If a running thinking step is open
+        // and a `status:'thinking'` echo later arrives, those deltas will be
+        // demoted from content into the step's thought (see 'thinking' case).
+        const steps = msg.thinkingSteps ?? []
+        const lastIdx = steps.length - 1
+        const last = lastIdx >= 0 ? steps[lastIdx] : undefined
+        if (
+          last &&
+          last.status === 'running' &&
+          !this.pendingDeltaStart.has(msg.id)
+        ) {
+          this.pendingDeltaStart.set(msg.id, msg.content.length)
+        }
         next = {
           ...msg,
           status: 'streaming',
           content: msg.content + part.delta,
         }
         break
-      case 'thinking':
+      }
+      case 'thinking': {
+        const incoming = part.step
+        if (incoming.status === 'thinking') {
+          // Echo: demote any deltas streamed during the open running step
+          // out of `content` and into that step's `thought`.
+          const start = this.pendingDeltaStart.get(msg.id)
+          const steps = msg.thinkingSteps ?? []
+          const lastIdx = steps.length - 1
+          const last = lastIdx >= 0 ? steps[lastIdx] : undefined
+          if (
+            last &&
+            last.status === 'running' &&
+            last.agent === incoming.agent &&
+            typeof start === 'number'
+          ) {
+            const reasoning =
+              incoming.thought && incoming.thought.length > 0
+                ? incoming.thought
+                : msg.content.slice(start)
+            const updatedSteps = steps.slice()
+            updatedSteps[lastIdx] = { ...last, thought: reasoning }
+            next = {
+              ...msg,
+              status: 'streaming',
+              content: msg.content.slice(0, start),
+              thinkingSteps: updatedSteps,
+            }
+            this.pendingDeltaStart.delete(msg.id)
+          } else {
+            // Nothing to demote — drop the echo (the running step + any
+            // streaming deltas already carry the same information).
+            next = msg
+          }
+          break
+        }
+        // running | complete: clear pending tracker (deltas, if any, stay in
+        // content as the answer) and append the step entry.
+        this.pendingDeltaStart.delete(msg.id)
         next = {
           ...msg,
           status: 'streaming',
-          thinkingSteps: [...(msg.thinkingSteps ?? []), part.step],
+          thinkingSteps: [...(msg.thinkingSteps ?? []), incoming],
         }
         break
+      }
       case 'tool-call': {
         const existingCalls = msg.toolCalls ?? []
         const existingIdx = existingCalls.findIndex(
@@ -204,6 +265,7 @@ export class ChatController {
         next = { ...msg, status: 'error', error: part.error }
         break
       case 'finish':
+        this.pendingDeltaStart.delete(msg.id)
         next = {
           ...msg,
           status:
