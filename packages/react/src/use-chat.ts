@@ -192,19 +192,16 @@ export function useChat<TMessage extends Message = Message>(
     []
   )
 
-  const messagesRef = useRef(messages)
-  useEffect(() => {
-    messagesRef.current = messages
-  }, [messages])
-
   const setMessages: Dispatch<SetStateAction<TMessage[]>> = useCallback(
     (updater) => {
-      const prev = messagesRef.current
+      const controller = controllerRef.current
+      if (!controller) return
+      const prev = controller.getMessages() as TMessage[]
       const next =
         typeof updater === 'function'
           ? (updater as (p: TMessage[]) => TMessage[])(prev)
           : updater
-      controllerRef.current?.setMessages(next as Message[])
+      controller.setMessages(next as Message[])
     },
     []
   )
