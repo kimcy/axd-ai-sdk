@@ -36,18 +36,15 @@ export class ChatController {
   private status: ControllerStatus = 'idle'
   private lastError: Error | null = null
   /**
-   * Per-message buffer for text-deltas streamed while a `running` thinking
-   * step is open. We can't route them in real time because the same wire
-   * pattern (running → deltas → complete) is used for both reasoning (hide)
-   * and the actual answer (show). Decision is made when the step closes:
-   *   - `status:'thinking'` echo arrives → buffer was reasoning → flush to
-   *     the running step's `thought` (and replace `content` is already untouched).
-   *   - `status:'complete'` arrives without an echo → buffer was the answer
-   *     → flush to `message.content`.
-   *   - Stream finishes with buffer non-empty → flush to `message.content`.
-   * Buffering avoids flicker (no transient reasoning text in the message body).
+   * Per-message snapshot of `content.length` at the moment the currently-open
+   * `running` thinking step was added. Text-deltas stream into `content` live
+   * (no buffering — the whole point of SSE). If the step closes with a
+   * `status:'thinking'` echo, the deltas streamed since the snapshot were
+   * reasoning, not answer: we slice them out of `content` and move them into
+   * the step's `thought`. If the step closes with `complete` (or the stream
+   * finishes), the snapshot is dropped and the streamed content stays.
    */
-  private pendingDeltas = new Map<string, string>()
+  private runningSnapshots = new Map<string, number>()
 
   constructor(private opts: ChatControllerOptions) {
     this.messages = opts.initialMessages ?? []
@@ -124,7 +121,7 @@ export class ChatController {
       citations: undefined,
       updatedAt: now,
     }
-    this.pendingDeltas.delete(last.id)
+    this.runningSnapshots.delete(last.id)
     this.setMessages([...this.messages.slice(0, -1), replacement])
     return this.runRequest(replacement.id, options?.metadata)
   }
@@ -169,22 +166,14 @@ export class ChatController {
         }
         break
       case 'text-delta': {
-        // If a `running` thinking step is open, BUFFER the delta off-screen
-        // (avoids flicker — the same wire pattern is used for both reasoning
-        // we want to hide and the actual answer we want to show; we route at
-        // step close based on whether a `status:'thinking'` echo arrives).
-        const steps = msg.thinkingSteps ?? []
-        const last = steps[steps.length - 1]
-        if (last && last.status === 'running') {
-          const buf = this.pendingDeltas.get(msg.id) ?? ''
-          this.pendingDeltas.set(msg.id, buf + part.delta)
-          next = { ...msg, status: 'streaming' }
-        } else {
-          next = {
-            ...msg,
-            status: 'streaming',
-            content: msg.content + part.delta,
-          }
+        // Stream every delta straight into `content` — the whole point of SSE
+        // is live updates. If the deltas turn out to have been reasoning
+        // (signalled by a later `status:'thinking'` echo), the `thinking`
+        // case retracts them via the `runningSnapshots` slice.
+        next = {
+          ...msg,
+          status: 'streaming',
+          content: msg.content + part.delta,
         }
         break
       }
@@ -193,37 +182,51 @@ export class ChatController {
         const steps = msg.thinkingSteps ?? []
         const lastIdx = steps.length - 1
         const last = lastIdx >= 0 ? steps[lastIdx] : undefined
-        const buffered = this.pendingDeltas.get(msg.id) ?? ''
 
         if (incoming.status === 'thinking') {
-          // Echo: those buffered deltas were reasoning. Flush them into the
-          // running step's thought (prefer the echo's full thought if given).
+          // Echo: deltas streamed since the running step opened were
+          // reasoning, not answer. Slice them out of `content` and stash
+          // them in the step's `thought` (prefer the echo's thought when
+          // provided).
           if (last && last.status === 'running' && last.agent === incoming.agent) {
+            const snapshot = this.runningSnapshots.get(msg.id) ?? msg.content.length
+            const streamed = msg.content.slice(snapshot)
             const reasoning =
               incoming.thought && incoming.thought.length > 0
                 ? incoming.thought
-                : buffered
+                : streamed
             const updatedSteps = steps.slice()
             updatedSteps[lastIdx] = { ...last, thought: reasoning }
-            next = { ...msg, status: 'streaming', thinkingSteps: updatedSteps }
+            next = {
+              ...msg,
+              status: 'streaming',
+              content: msg.content.slice(0, snapshot),
+              thinkingSteps: updatedSteps,
+            }
           } else {
             next = msg
           }
-          this.pendingDeltas.delete(msg.id)
+          this.runningSnapshots.delete(msg.id)
           break
         }
 
-        // running | complete. If a buffer survived to a `complete` without an
-        // echo, those deltas were the actual answer — flush to content.
-        const flushedContent =
-          incoming.status === 'complete' && buffered
-            ? msg.content + buffered
-            : msg.content
-        if (incoming.status === 'complete') this.pendingDeltas.delete(msg.id)
+        // Once the answer has begun streaming into `content`, suppress any
+        // new `running` step — only `complete` steps continue to surface.
+        // Prevents a "thinking…" indicator from re-appearing after the
+        // assistant has already started delivering its reply.
+        if (incoming.status === 'running' && msg.content.length > 0) {
+          next = msg
+          break
+        }
+
+        if (incoming.status === 'running') {
+          this.runningSnapshots.set(msg.id, msg.content.length)
+        } else {
+          this.runningSnapshots.delete(msg.id)
+        }
         next = {
           ...msg,
           status: 'streaming',
-          content: flushedContent,
           thinkingSteps: [...steps, incoming],
         }
         break
@@ -264,13 +267,9 @@ export class ChatController {
         next = { ...msg, status: 'error', error: part.error }
         break
       case 'finish': {
-        // Flush any leftover buffered deltas to content (no echo arrived and
-        // no closing step — treat as answer).
-        const buffered = this.pendingDeltas.get(msg.id) ?? ''
-        this.pendingDeltas.delete(msg.id)
+        this.runningSnapshots.delete(msg.id)
         next = {
           ...msg,
-          content: buffered ? msg.content + buffered : msg.content,
           status:
             part.reason === 'abort'
               ? 'aborted'
